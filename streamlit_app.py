@@ -1,38 +1,84 @@
-from collections import namedtuple
-import altair as alt
-import math
-import pandas as pd
+import openai
+import os
 import streamlit as st
 
-"""
-# Welcome to Streamlit!
+# Set up the OpenAI API key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:
+# Define a function to generate text using GPT-3
+def generate_text(prompt):
+    # Set up the GPT-3 engine and parameters
+    engine = "text-davinci-002"
+    max_tokens = 100
+    temperature = 0.5
+    
+    # Generate text from the prompt using GPT-3
+    response = openai.Completion.create(
+        engine=engine,
+        prompt=prompt,
+        max_tokens=max_tokens,
+        n=1,
+        stop=None,
+        temperature=temperature,
+    )
+    text = response.choices[0].text.strip()
+    
+    return text
 
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+# Define a function to get user input for a destination
+def get_destination():
+    # Prompt the user for a destination
+    st.write("Let's plan your next vacation!")
+    destination = st.text_input("Where would you like to go?")
+    return destination
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+# Define a function to generate suggestions for activities and things to do at the destination
+def get_activities(destination):
+    # Generate suggestions for activities and things to do at the destination
+    prompt = f"Here are some activities and things to do in {destination}:\n"
+    prompt += generate_text(f"What are some popular tourist attractions in {destination}?")
+    prompt += "\n\n"
+    prompt += generate_text(f"What are some local events happening in {destination} during your travel dates?")
+    prompt += "\n\n"
+    prompt += generate_text(f"What are some outdoor activities you can do in {destination}?")
+    
+    return prompt
 
+# Define a function to generate suggestions for accommodations at the destination
+def get_accommodations(destination):
+    # Generate suggestions for accommodations at the destination
+    prompt = f"Here are some recommended accommodations in {destination}:\n"
+    prompt += generate_text(f"What are some highly rated hotels in {destination}?")
+    prompt += "\n\n"
+    prompt += generate_text(f"What are some unique lodging options in {destination}?")
+    
+    return prompt
 
-with st.echo(code_location='below'):
-    total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-    num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
+# Define a function to generate a travel itinerary for the destination
+def get_itinerary(destination):
+    # Generate a travel itinerary for the destination
+    prompt = f"Here's a sample travel itinerary for your trip to {destination}:\n"
+    prompt += generate_text(f"What are some must-see attractions in {destination}?")
+    prompt += "\n\n"
+    prompt += generate_text(f"What are some good restaurants to try in {destination}?")
+    prompt += "\n\n"
+    prompt += generate_text(f"What are some fun activities to do in {destination} at night?")
+    
+    return prompt
 
-    Point = namedtuple('Point', 'x y')
-    data = []
+# Create the Streamlit app
+st.title("Plan Your Next Vacation!")
+destination = get_destination()
+if destination:
+    activities_prompt = get_activities(destination)
+    accommodations_prompt = get_accommodations(destination)
+    itinerary_prompt = get_itinerary(destination)
 
-    points_per_turn = total_points / num_turns
+    st.subheader("Activities and Things to Do")
+    st.write(activities_prompt)
 
-    for curr_point_num in range(total_points):
-        curr_turn, i = divmod(curr_point_num, points_per_turn)
-        angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-        radius = curr_point_num / total_points
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        data.append(Point(x, y))
+    st.subheader("Accommodations")
+    st.write(accommodations_prompt)
 
-    st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-        .mark_circle(color='#0068c9', opacity=0.5)
-        .encode(x='x:Q', y='y:Q'))
+    st.subheader("Travel Itinerary")
+    st.write(itinerary_prompt)
